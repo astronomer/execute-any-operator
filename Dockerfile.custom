@@ -1,0 +1,91 @@
+#
+# Copyright 2022 Astronomer Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+ARG PYTHON_MAJOR_MINOR_VERSION="3.9"
+ARG PYTHON_BASE_IMAGE="python:${PYTHON_MAJOR_MINOR_VERSION}-slim-bullseye"
+FROM ${PYTHON_BASE_IMAGE}
+
+ENV AIRFLOW_HOME="/usr/local/airflow"
+ENV PYTHONPATH=${PYTHONPATH:+${PYTHONPATH}:}${AIRFLOW_HOME}
+
+# Need to repeat the empty argument here otherwise it will not be set for this stage
+# But the default value carries from the one set before FROM
+ARG PYTHON_BASE_IMAGE
+ENV PYTHON_BASE_IMAGE=${PYTHON_BASE_IMAGE}
+ARG PYTHON_MAJOR_MINOR_VERSION
+ENV PYTHON_MAJOR_MINOR_VERSION=${PYTHON_MAJOR_MINOR_VERSION}
+ARG PIP_VERSION="21.2.4"
+ENV PYTHON_PIP_VERSION=${PIP_VERSION}
+
+# Make sure noninteractie debian install is used and language variables set
+ENV DEBIAN_FRONTEND=noninteractive LANGUAGE=C.UTF-8 LANG=C.UTF-8 LC_ALL=C.UTF-8 \
+    LC_CTYPE=C.UTF-8 LC_MESSAGES=C.UTF-8
+
+# By increasing this number we can do force build of all dependencies
+ARG DEPENDENCIES_EPOCH_NUMBER="5"
+# Increase the value below to force renstalling of all dependencies
+ENV DEPENDENCIES_EPOCH_NUMBER=${DEPENDENCIES_EPOCH_NUMBER}
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        apt-utils \
+        curl \
+        libmariadb3 \
+        freetds-bin \
+        gosu \
+        libffi7 \
+        libkrb5-3 \
+        libpq5 \
+        libsasl2-2 \
+        libsasl2-modules \
+        libssl1.1 \
+        locales  \
+        netcat \
+        rsync \
+        sasl2-bin \
+        sudo \
+        tini \
+    && curl -sL https://deb.nodesource.com/setup_14.x | sudo bash - \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        default-libmysqlclient-dev \
+        libffi-dev \
+        libkrb5-dev \
+        libpq-dev \
+        libsasl2-dev \
+        libssl-dev \
+    && apt-get autoremove -yqq --purge \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --upgrade pip=="${PYTHON_PIP_VERSION}"
+
+ARG AIRFLOW_VERSION="2.2.4"
+ENV AIRFLOW_VERSION=${AIRFLOW_VERSION}
+ARG AIRFLOW_MODULE="apache-airflow==${AIRFLOW_VERSION}"
+
+# Pip install airflow and astro security manager. Install Airflow module with extra separately to account
+# for difference of OSS and Astro Providers
+RUN pip install "${AIRFLOW_MODULE}" \
+    --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_MAJOR_MINOR_VERSION}.txt"
+
+# Install python packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir -q -r requirements.txt
+
+# Switch to AIRFLOW_HOME
+WORKDIR ${AIRFLOW_HOME}
+
+COPY util ./util
+COPY scripts ./scripts

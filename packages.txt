@@ -1,0 +1,6 @@
+build-essential
+libffi-dev
+libkrb5-dev
+libpq-dev
+libsasl2-dev
+libssl-dev
