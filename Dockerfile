@@ -1,4 +1,4 @@
-ARG AIRFLOW_VERSION="2.2.4"
+ARG AIRFLOW_VERSION="2.2.0"
 FROM quay.io/astronomer/ap-airflow:${AIRFLOW_VERSION}
 
 COPY packages.txt .
@@ -10,12 +10,12 @@ RUN if [[ -s packages.txt ]]; then \
   fi
 
 # Install python packages
-COPY requirements.txt .
+COPY . /execute_any_operator
+WORKDIR /execute_any_operator
 RUN pip install --no-cache-dir -q -r requirements.txt
 
 USER astro
 
-COPY util ./util
-COPY scripts ./scripts
-
 ENV AIRFLOW_CONN_AWS_DEFAULT=s3://
+
+ENTRYPOINT [ "execute-any-operator" ]

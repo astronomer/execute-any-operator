@@ -11,7 +11,7 @@ from airflow.models.dag import DAG
 from airflow.models.taskinstance import TaskInstance
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
+from airflow.providers.amazon.aws.sensors.s3_key import S3KeySensor
 from airflow.providers.apache.hdfs.sensors.hdfs import HdfsSensor
 from airflow.providers.apache.hive.operators.hive import HiveOperator
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
