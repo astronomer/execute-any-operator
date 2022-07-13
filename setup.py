@@ -10,7 +10,7 @@ def read(fname):
 setup(
     name='execute_any_operator',
     version=read("execute_any_operator/__version__"),
-    packages=find_packages(),
+    packages=find_packages(exclude=["remote_bash_operator"]),
     install_requires=[
         'click',
         'apache-airflow-providers-cncf-kubernetes',
