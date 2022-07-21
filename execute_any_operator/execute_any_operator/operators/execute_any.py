@@ -1,14 +1,17 @@
 import functools
 import inspect
+import os
 from enum import Enum
 from typing import Any, Type, TypeVar, Union
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pendulum
+import remote_bash_operator.operator
 from airflow import macros
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.dag import DAG
 from airflow.models.taskinstance import TaskInstance
+from airflow.models.variable import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.sensors.s3_key import S3KeySensor
@@ -16,6 +19,7 @@ from airflow.providers.apache.hdfs.sensors.hdfs import HdfsSensor
 from airflow.providers.apache.hive.operators.hive import HiveOperator
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
     KubernetesPodOperator
+from remote_bash_operator.operator import RemoteBashOperator
 
 XCom = {}
 TBaseOperator = TypeVar("TBaseOperator", bound=BaseOperator)
@@ -28,6 +32,7 @@ class AllowedOperators(Enum):
     HiveOperator = HiveOperator
     KubernetesPodOperator = KubernetesPodOperator
     S3KeySensor = S3KeySensor
+    RemoteBashOperator = RemoteBashOperator
 
     def __call__(self, *args, **kwargs):
         return self.value(*args, **kwargs)
@@ -52,6 +57,18 @@ class TaskInstanceMock(MagicMock):
 
     def xcom_pull(self, task_ids: str, dag_id: str, key: str):
         return XCom[dag_id][task_ids][key]
+
+
+class PatchedVariable(Variable):
+    @classmethod
+    def get(cls, key: str, default_var: Any = ..., deserialize_json: bool = False) -> Any:
+        return os.getenv(key.upper())
+
+
+remote_bash_operator.operator.Variable = PatchedVariable
+# TODO: remove these mocks when maven is installed
+remote_bash_operator.operator.maven_install = MagicMock()
+remote_bash_operator.operator.verify_submitter = MagicMock()
 
 
 def make_kwargs(func):
@@ -127,6 +144,9 @@ class ExecuteAnyOperator(BaseOperator):
             'var': None,
             'conn': None,
         }
+
+    def pre_execute(self):
+        return self.task.pre_execute(context=self.context)
 
     def execute(self):
         return self.task.execute(context=self.context)

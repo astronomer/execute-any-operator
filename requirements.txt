@@ -1,2 +1,2 @@
--e .
+-e ./execute_any_operator
 -e ./remote_bash_operator

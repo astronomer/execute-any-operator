@@ -1,7 +1,10 @@
+import os
 from typing import Any, Dict, List, Tuple
 
 import click
+from airflow.exceptions import AirflowSensorTimeout
 from execute_any_operator.operators.execute_any import ExecuteAnyOperator
+from remote_bash_operator.operator import Config, EnvironmentConfigInstance
 
 
 def _multi_tuple_to_dict(ctx, param, value: List[Tuple[str, Any]]) -> Dict[str, Any]:
@@ -16,12 +19,20 @@ def _remove_unused_kwargs(kwargs) -> Dict[str, Any]:
 
 @click.group()
 @click.version_option()
-def cli():
+@click.option(
+    "--env-var",
+    default=None,
+    multiple=True,
+    type=click.Tuple([str, str]),
+    callback=_multi_tuple_to_dict,
+    help="Environment variables for operators to use, can also accessed via Variable.get."
+)
+def cli(env_var):
     """Executes Airflow operator classes as Python objects without the need for running Airflow."""
-    pass
+    os.environ.update({k.upper(): v for k, v in env_var.items()})
 
 
-@click.command()
+@cli.command()
 @click.option(
     "-e",
     "--env",
@@ -49,22 +60,23 @@ def bash_operator(bash_command, **kwargs):
     task.execute()
 
 
-@click.command()
+@cli.command()
 def hdfs_sensor():
     """Waits for a file or folder to land in HDFS."""
     click.echo("Executing HdfsSensor")
 
 
-@click.command()
+@cli.command()
 def hive_operator():
     """Executes hql code or hive script in a specific Hive database."""
     click.echo("Executing HiveOperator")
 
 
-@click.command()
+@cli.command()
 @click.option("-n", "--namespace", default=None, help="")
 @click.option("-i", "--image", default=None, help="")
 @click.option("-N", "--name", default=None, help="")
+@click.option("--random-name-suffix", default=True, help="")
 @click.option("-c", "--commands", "cmds", default=None, multiple=True, help="")
 @click.option("-a", "--arguments", default=None, multiple=True, help="")
 @click.option("-p", "--ports", default=None, help="")
@@ -108,7 +120,7 @@ def kubernetes_pod_operator(**kwargs):
     task.execute()
 
 
-@click.command()
+@cli.command()
 @click.option(
     "-a",
     "--arguments",
@@ -144,7 +156,7 @@ def python_operator(python_callable, **kwargs):
     task.execute()
 
 
-@click.command()
+@cli.command()
 @click.option(
     "-e",
     "--env",
@@ -157,7 +169,6 @@ def python_operator(python_callable, **kwargs):
 @click.option(
     "-w", "--working-directory", "cwd", default=None, help="Working directory to execute the command in"
 )
-@click.option("--config", default=None, help="")
 @click.option("--encode", default=True, help="")
 @click.option("--extra_clusters", default=(), help="")
 @click.option("--files", default=(), help="")
@@ -168,37 +179,53 @@ def python_operator(python_callable, **kwargs):
 @click.argument("command", required=True)
 @click.argument("cluster", required=True)
 @click.argument("user", required=True)
-@click.argument("job_name", required=True)
-@click.argument("memory", required=True)
-@click.argument("vcores", required=True)
+@click.argument("job-name", required=True)
+@click.argument("memory", type=int, required=True)
+@click.argument("vcores", type=int, required=True)
 def remote_bash_operator(command, cluster, user, job_name, memory, vcores, **kwargs):
     """Execute a Bash script, command or set of commands."""
-    click.echo("Executing BashOperator")
+    click.echo("Executing RemoteBashOperator")
     task = ExecuteAnyOperator(
-        operator="BashOperator",
-        # bash_command=bash_command,
-        # env=env,
-        # output_encoding=output_encoding,
-        # cwd=cwd,
+        operator="RemoteBashOperator",
+        command=command,
+        cluster=cluster,
+        user=user,
+        job_name=job_name,
+        memory=memory,
+        vcores=vcores,
+        config=Config(configs=[EnvironmentConfigInstance()]),
+        **_remove_unused_kwargs(kwargs)
     )
+    task.pre_execute()
     task.execute()
 
 
-@click.command()
-def s3_key_sensor():
+@cli.command()
+@click.option("--bucket-name", default=None, help="Name of the S3 bucket. Only needed when `bucket_key` is not provided as a full s3:// url.")
+@click.option("--wildcard-match", default=False, help="whether the bucket_key should be interpreted as a Unix wildcard pattern.")
+@click.option("--aws-conn-id", default='aws_default', help="A reference to the s3 connection.")
+@click.option("--verify", default=None, help="Whether or not to verify SSL certificates for S3 connection. By default SSL certificates are verified.")
+@click.option("--poke-interval", default=60, help="Time in seconds that the job should wait in between each tries.")
+@click.option("--timeout", default=60 * 60 * 24 * 7, help="Time, in seconds before the task times out and fails.")
+@click.option("--exponential-backoff", default=False, help="Allow progressive longer waits between pokes by using exponential backoff algorithm.")
+@click.argument("bucket-key", required=True)
+def s3_key_sensor(bucket_key, **kwargs):
     """Waits for a key (a file-like instance on S3) to be present in a S3 bucket.
     S3 being a key/value it does not support folders. The path is just a key
     a resource.
     """
     click.echo("Executing S3KeySensor")
+    task = ExecuteAnyOperator(
+        operator="S3KeySensor",
+        bucket_key=bucket_key,
+        **_remove_unused_kwargs(kwargs)
+    )
+    try:
+        task.execute()
+        click.echo(f"File '{bucket_key}' exists")
+    except AirflowSensorTimeout:
+        click.echo(f"File '{bucket_key}' not found")
 
-
-cli.add_command(bash_operator)
-cli.add_command(hdfs_sensor)
-cli.add_command(hive_operator)
-cli.add_command(kubernetes_pod_operator)
-cli.add_command(python_operator)
-cli.add_command(s3_key_sensor)
 
 if __name__ == "__main__":
     cli()
