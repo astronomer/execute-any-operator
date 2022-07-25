@@ -112,7 +112,6 @@ def hive_operator():
 def kubernetes_pod_operator(**kwargs):
     """Execute a task in a Kubernetes Pod."""
     click.echo("Executing KubernetesPodOperator")
-    print(kwargs)
     task = ExecuteAnyOperator(
         operator="KubernetesPodOperator",
         **_remove_unused_kwargs(kwargs)
