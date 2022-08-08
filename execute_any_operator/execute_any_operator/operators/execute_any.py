@@ -1,25 +1,29 @@
 import functools
 import inspect
-import os
+from contextlib import ExitStack
 from enum import Enum
 from typing import Any, Type, TypeVar, Union
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pendulum
-import remote_bash_operator.operator
-from airflow import macros
-from airflow.models.baseoperator import BaseOperator
-from airflow.models.dag import DAG
-from airflow.models.taskinstance import TaskInstance
-from airflow.models.variable import Variable
-from airflow.operators.bash import BashOperator
-from airflow.operators.python import PythonOperator
-from airflow.providers.amazon.aws.sensors.s3_key import S3KeySensor
-from airflow.providers.apache.hdfs.sensors.hdfs import HdfsSensor
-from airflow.providers.apache.hive.operators.hive import HiveOperator
-from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
-    KubernetesPodOperator
-from remote_bash_operator.operator import RemoteBashOperator
+from execute_any_operator.utils.mock import context_patches
+
+with ExitStack() as stack:
+    managers = [stack.enter_context(patch) for patch in context_patches]
+
+    import remote_bash_operator.operator
+    from airflow import macros
+    from airflow.models.baseoperator import BaseOperator
+    from airflow.models.dag import DAG
+    from airflow.models.taskinstance import TaskInstance
+    from airflow.operators.bash import BashOperator
+    from airflow.operators.python import PythonOperator
+    from airflow.providers.amazon.aws.sensors.s3_key import S3KeySensor
+    from airflow.providers.apache.hdfs.sensors.hdfs import HdfsSensor
+    from airflow.providers.apache.hive.operators.hive import HiveOperator
+    from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
+        KubernetesPodOperator
+    from remote_bash_operator.operator import RemoteBashOperator
 
 XCom = {}
 TBaseOperator = TypeVar("TBaseOperator", bound=BaseOperator)
@@ -59,13 +63,6 @@ class TaskInstanceMock(MagicMock):
         return XCom[dag_id][task_ids][key]
 
 
-class PatchedVariable(Variable):
-    @classmethod
-    def get(cls, key: str, default_var: Any = ..., deserialize_json: bool = False) -> Any:
-        return os.getenv(key.upper())
-
-
-remote_bash_operator.operator.Variable = PatchedVariable
 # TODO: remove these mocks when maven is installed
 remote_bash_operator.operator.maven_install = MagicMock()
 remote_bash_operator.operator.verify_submitter = MagicMock()
@@ -93,7 +90,10 @@ class ExecuteAnyOperator(BaseOperator):
         base_kwargs = {k: kwargs[k] for k in params if k in kwargs}
         super().__init__(**base_kwargs)
 
-        if isinstance(operator, type) and operator.__name__ in AllowedOperators.__members__:
+        if (
+            isinstance(operator, type)
+            and operator.__name__ in AllowedOperators.__members__
+        ):
             self.operator = operator
         elif isinstance(operator, str) and operator in AllowedOperators.__members__:
             self.operator = AllowedOperators[operator]
@@ -102,7 +102,10 @@ class ExecuteAnyOperator(BaseOperator):
 
         self.dag = DAG(
             "dummy_dag",
-            default_args={"owner": "airflow", "start_date": pendulum.today().subtract(days=1)},
+            default_args={
+                "owner": "airflow",
+                "start_date": pendulum.today().subtract(days=1),
+            },
             schedule_interval=None,
         )
         self.start_date = kwargs["start_date"]
@@ -114,39 +117,42 @@ class ExecuteAnyOperator(BaseOperator):
         ds = self.start_date.to_date_string()
         ds_nodash = ds.replace("-", "")
         ts = self.start_date.isoformat()
-        ts_nodash = self.start_date.strftime('%Y%m%dT%H%M%S')
+        ts_nodash = self.start_date.strftime("%Y%m%dT%H%M%S")
         ts_nodash_with_tz = ts.replace("-", "").replace(":", "")
 
         return {
-            'conf': None,
-            'dag': self.dag,
-            'dag_run': None,
-            'data_interval_end': None,
-            'data_interval_start': self.start_date,
-            'ds': ds,
-            'ds_nodash': ds_nodash,
-            'inlets': None,
-            'macros': macros,
-            'outlets': None,
-            'params': None,
-            'prev_data_interval_start_success': None,
-            'prev_data_interval_end_success': None,
-            'prev_execution_date_success': None,
-            'run_id': None,
-            'task': self.task,
-            'task_instance': task_instance,
-            'task_instance_key_str': f"{self.dag.dag_id}__{self.task_id}__{ds_nodash}",
-            'test_mode': False,
-            'ti': task_instance,
-            'ts': ts,
-            'ts_nodash': ts_nodash,
-            'ts_nodash_with_tz': ts_nodash_with_tz,
-            'var': None,
-            'conn': None,
+            "conf": None,
+            "dag": self.dag,
+            "dag_run": None,
+            "data_interval_end": None,
+            "data_interval_start": self.start_date,
+            "ds": ds,
+            "ds_nodash": ds_nodash,
+            "inlets": None,
+            "macros": macros,
+            "outlets": None,
+            "params": None,
+            "prev_data_interval_start_success": None,
+            "prev_data_interval_end_success": None,
+            "prev_execution_date_success": None,
+            "run_id": None,
+            "task": self.task,
+            "task_instance": task_instance,
+            "task_instance_key_str": f"{self.dag.dag_id}__{self.task_id}__{ds_nodash}",
+            "test_mode": False,
+            "ti": task_instance,
+            "ts": ts,
+            "ts_nodash": ts_nodash,
+            "ts_nodash_with_tz": ts_nodash_with_tz,
+            "var": None,
+            "conn": None,
         }
 
     def pre_execute(self):
         return self.task.pre_execute(context=self.context)
+
+    def post_execute(self, context: Any, result: Any = None):
+        return self.task.post_execute(context, result)
 
     def execute(self):
         return self.task.execute(context=self.context)

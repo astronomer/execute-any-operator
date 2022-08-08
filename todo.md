@@ -8,5 +8,7 @@
 
 - [ ] add example of running in kubernetes
 - [ ] patch any airflow calls to db, airflow functions, etc
-- [ ] add pre-execute wrapper
+- [x] add pre-execute wrapper
 - [ ] add post-execute wrapper
+- [x] patch airflow.models.Variable globally
+- [ ] provide steps for adding new operators
