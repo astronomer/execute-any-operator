@@ -76,7 +76,7 @@ def hive_operator():
 @click.option("-n", "--namespace", default=None, help="")
 @click.option("-i", "--image", default=None, help="")
 @click.option("-N", "--name", default=None, help="")
-@click.option("--random-name-suffix", default=True, help="")
+# @click.option("--random-name-suffix", default=True, help="")
 @click.option("-c", "--commands", "cmds", default=None, multiple=True, help="")
 @click.option("-a", "--arguments", default=None, multiple=True, help="")
 @click.option("-p", "--ports", default=None, help="")

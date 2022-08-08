@@ -25,7 +25,6 @@ with ExitStack() as stack:
         KubernetesPodOperator
     from remote_bash_operator.operator import RemoteBashOperator
 
-XCom = {}
 TBaseOperator = TypeVar("TBaseOperator", bound=BaseOperator)
 
 
@@ -40,27 +39,6 @@ class AllowedOperators(Enum):
 
     def __call__(self, *args, **kwargs):
         return self.value(*args, **kwargs)
-
-
-class TaskInstanceMock(MagicMock):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def _update(self, d, u):
-        for k, v in u.items():
-            if isinstance(v, dict):
-                d[k] = self._update(d.get(k, {}), v)
-            else:
-                d[k] = v
-        return d
-
-    def xcom_push(self, key: str, value: Any, **kwargs):
-        task_id = str(id(self.task_id))
-        dag_id = str(id(self.dag_id))
-        self._update(XCom, {dag_id: {task_id: {key: value}}})
-
-    def xcom_pull(self, task_ids: str, dag_id: str, key: str):
-        return XCom[dag_id][task_ids][key]
 
 
 # TODO: remove these mocks when maven is installed
@@ -113,12 +91,12 @@ class ExecuteAnyOperator(BaseOperator):
         self.context = self._generate_context()
 
     def _generate_context(self):
-        task_instance = TaskInstanceMock(spec=TaskInstance)
         ds = self.start_date.to_date_string()
         ds_nodash = ds.replace("-", "")
         ts = self.start_date.isoformat()
         ts_nodash = self.start_date.strftime("%Y%m%dT%H%M%S")
         ts_nodash_with_tz = ts.replace("-", "").replace(":", "")
+        task_instance = TaskInstance(task=self.task, execution_date=self.start_date, run_id=f"cli__{ts_nodash}")
 
         return {
             "conf": None,
