@@ -23,6 +23,7 @@ with ExitStack() as stack:
     from airflow.providers.apache.hive.operators.hive import HiveOperator
     from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
         KubernetesPodOperator
+    from arrow_hdfs_sensor.sensor import ArrowHdfsSensor
     from remote_bash_operator.operator import RemoteBashOperator
 
 TBaseOperator = TypeVar("TBaseOperator", bound=BaseOperator)
@@ -35,6 +36,7 @@ class AllowedOperators(Enum):
     HiveOperator = HiveOperator
     KubernetesPodOperator = KubernetesPodOperator
     S3KeySensor = S3KeySensor
+    ArrowHdfsSensor = ArrowHdfsSensor
     RemoteBashOperator = RemoteBashOperator
 
     def __call__(self, *args, **kwargs):

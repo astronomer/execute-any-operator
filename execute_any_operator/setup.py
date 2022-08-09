@@ -21,7 +21,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'execute-any-operator = execute_any_operator.entrypoint.cli:cli',
+            'execute-any-operator = execute_any_operator.entrypoint:cli',
         ],
     },
 )

@@ -1,2 +1,3 @@
 -e ./execute_any_operator
+-e ./arrow_hdfs_sensor
 -e ./remote_bash_operator
