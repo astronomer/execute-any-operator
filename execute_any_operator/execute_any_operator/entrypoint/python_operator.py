@@ -9,7 +9,7 @@ from execute_any_operator.utils.helpers import (_multi_tuple_to_dict,
 @click.option(
     "-a",
     "--arguments",
-    "op-args",
+    "op_args",
     default=None,
     multiple=True,
     help="A list of positional arguments that will get unpacked when calling your callable.",
@@ -17,7 +17,7 @@ from execute_any_operator.utils.helpers import (_multi_tuple_to_dict,
 @click.option(
     "-k",
     "--keyword-arguments",
-    "op-kwargs",
+    "op_kwargs",
     default=None,
     multiple=True,
     type=click.Tuple([str, str]),
@@ -34,7 +34,7 @@ def python_operator(python_callable, **kwargs):
     mod = importlib.import_module(mod_name)
     func = getattr(mod, func_name)
     task = ExecuteAnyOperator(
-        operator="PythonOperator",
+        operator="airflow.operators.python:PythonOperator",
         python_callable=func,
         **_remove_unused_kwargs(kwargs)
     )

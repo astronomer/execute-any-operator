@@ -25,7 +25,7 @@ def bash_operator(bash_command, **kwargs):
     """Execute a Bash script, command or set of commands."""
     click.echo("Executing BashOperator")
     task = ExecuteAnyOperator(
-        operator="BashOperator",
+        operator="airflow.operators.bash:BashOperator",
         bash_command=bash_command,
         **_remove_unused_kwargs(kwargs)
     )

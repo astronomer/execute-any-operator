@@ -80,6 +80,9 @@ class mockSession:
     def commit(self):
         pass
 
+    def expunge_all(self):
+        pass
+
     def __enter__(self):
         print("enter session")
         return self

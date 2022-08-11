@@ -29,7 +29,7 @@ from execute_any_operator.utils.helpers import _remove_unused_kwargs
 def simple_http_operator(endpoint, **kwargs):
     click.echo("Executing SimpleHttpOperator")
     task = ExecuteAnyOperator(
-        operator="SimpleHttpOperator",
+        operator="airflow.providers.http.operators.http:SimpleHttpOperator",
         endpoint=endpoint,
         **_remove_unused_kwargs(kwargs)
     )

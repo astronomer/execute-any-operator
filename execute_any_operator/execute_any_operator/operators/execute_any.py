@@ -1,9 +1,9 @@
 import functools
+import importlib
 import inspect
 import logging
 from contextlib import ExitStack
-from enum import Enum
-from typing import Any, Type, TypeVar, Union
+from typing import Any, TypeVar
 from unittest.mock import MagicMock
 
 import pendulum
@@ -17,35 +17,10 @@ with ExitStack() as stack:
     from airflow.models.baseoperator import BaseOperator
     from airflow.models.dag import DAG
     from airflow.models.taskinstance import XCOM_RETURN_KEY, TaskInstance
-    from airflow.operators.bash import BashOperator
-    from airflow.operators.python import PythonOperator
-    from airflow.providers.amazon.aws.sensors.s3_key import S3KeySensor
-    from airflow.providers.apache.hdfs.sensors.hdfs import HdfsSensor
-    from airflow.providers.apache.hive.operators.hive import HiveOperator
-    from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
-        KubernetesPodOperator
-    from airflow.providers.http.operators.http import SimpleHttpOperator
-    from arrow_hdfs_sensor.sensor import ArrowHdfsSensor
-    from remote_bash_operator.operator import RemoteBashOperator
 
 TBaseOperator = TypeVar("TBaseOperator", bound=BaseOperator)
 
 log = logging.getLogger(__name__)
-
-
-class AllowedOperators(Enum):
-    BashOperator = BashOperator
-    PythonOperator = PythonOperator
-    HdfsSensor = HdfsSensor
-    HiveOperator = HiveOperator
-    KubernetesPodOperator = KubernetesPodOperator
-    S3KeySensor = S3KeySensor
-    ArrowHdfsSensor = ArrowHdfsSensor
-    RemoteBashOperator = RemoteBashOperator
-    SimpleHttpOperator = SimpleHttpOperator
-
-    def __call__(self, *args, **kwargs):
-        return self.value(*args, **kwargs)
 
 
 # TODO: remove these mocks when maven is installed
@@ -56,12 +31,16 @@ remote_bash_operator.operator.verify_submitter = MagicMock()
 def make_kwargs(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        operator = kwargs["operator"]
+        try:
+            mod_name, op_name = operator.split(":", 1)
+        except ValueError:
+            raise ValueError(f"Operator string {operator} improperly formatted, must be in module notation (my.module:OperatorClass)")
+
+        kwargs["mod_name"] = mod_name
+        kwargs["op_name"] = op_name
         if "task_id" not in kwargs:
-            operator = kwargs["operator"]
-            if isinstance(operator, type):
-                kwargs["task_id"] = f"execute_{operator.__name__}"
-            else:
-                kwargs["task_id"] = f"execute_{operator}"
+            kwargs["task_id"] = f"execute_{op_name}"
         if "start_date" not in kwargs:
             kwargs["start_date"] = pendulum.now()
         return func(*args, **kwargs)
@@ -70,20 +49,14 @@ def make_kwargs(func):
 
 class ExecuteAnyOperator(BaseOperator):
     @make_kwargs
-    def __init__(self, operator: Union[str, Type[TBaseOperator]], *args, **kwargs):
+    def __init__(self, operator: str, *args, **kwargs):
         params = inspect.signature(BaseOperator).parameters
         base_kwargs = {k: kwargs[k] for k in params if k in kwargs}
         super().__init__(**base_kwargs)
 
-        if (
-            isinstance(operator, type)
-            and operator.__name__ in AllowedOperators.__members__
-        ):
-            self.operator = operator
-        elif isinstance(operator, str) and operator in AllowedOperators.__members__:
-            self.operator = AllowedOperators[operator]
-        else:
-            raise NotImplementedError(f"Operator {operator} is not supported")
+        mod_name = kwargs.pop("mod_name")
+        op_name = kwargs.pop("op_name")
+        self.operator = getattr(importlib.import_module(mod_name), op_name)
 
         self.dag = DAG(
             "dummy_dag",

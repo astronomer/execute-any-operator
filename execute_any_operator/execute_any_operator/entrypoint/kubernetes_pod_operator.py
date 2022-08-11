@@ -45,7 +45,7 @@ def kubernetes_pod_operator(**kwargs):
     """Execute a task in a Kubernetes Pod."""
     click.echo("Executing KubernetesPodOperator")
     task = ExecuteAnyOperator(
-        operator="KubernetesPodOperator",
+        operator="airflow.providers.cncf.kubernetes.operators.kubernetes_pod:KubernetesPodOperator",
         **_remove_unused_kwargs(kwargs)
     )
     task.execute()

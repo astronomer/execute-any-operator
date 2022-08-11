@@ -1,5 +1,6 @@
-ARG AIRFLOW_VERSION="2.2.0"
-FROM quay.io/astronomer/ap-airflow:${AIRFLOW_VERSION}
+ARG AIRFLOW_VERSION="2.3.2"
+ARG BASE_IMAGE=quay.io/astronomer/ap-airflow
+FROM ${BASE_IMAGE}:${AIRFLOW_VERSION}
 
 COPY packages.txt .
 USER root

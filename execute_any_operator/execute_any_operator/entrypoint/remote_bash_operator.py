@@ -36,7 +36,7 @@ def remote_bash_operator(command, cluster, user, job_name, memory, vcores, **kwa
     """Execute a Bash script, command or set of commands."""
     click.echo("Executing RemoteBashOperator")
     task = ExecuteAnyOperator(
-        operator="RemoteBashOperator",
+        operator="remote_bash_operator.operator:RemoteBashOperator",
         command=command,
         cluster=cluster,
         user=user,

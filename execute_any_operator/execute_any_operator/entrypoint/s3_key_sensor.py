@@ -21,7 +21,7 @@ def s3_key_sensor(bucket_key, **kwargs):
     """
     click.echo("Executing S3KeySensor")
     task = ExecuteAnyOperator(
-        operator="S3KeySensor",
+        operator="airflow.providers.amazon.aws.sensors.s3_key:S3KeySensor",
         bucket_key=bucket_key,
         **_remove_unused_kwargs(kwargs)
     )
