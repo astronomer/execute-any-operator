@@ -16,7 +16,6 @@ RUN pip install --no-cache-dir -q -r requirements.txt
 
 USER astro
 
-ENV AIRFLOW_CONN_AWS_DEFAULT=s3://
 ENV AIRFLOW__CORE__XCOM_BACKEND=execute_any_operator.utils.dict_xcom_backend.DictXComBackend
 
 ENTRYPOINT [ "execute-any-operator" ]

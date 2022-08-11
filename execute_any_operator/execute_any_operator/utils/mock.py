@@ -1,12 +1,14 @@
 import os
 from typing import Any, Iterable, Optional, Union
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from airflow import settings
-from airflow.models.taskinstance import TaskInstance
-from airflow.models.variable import Variable
-from airflow.models.xcom import XCom
-from airflow.utils.helpers import is_container
+from execute_any_operator.utils.alchemy_mock import mockSession
+
+with patch("sqlalchemy.orm.scoped_session", mockSession):
+    from airflow.models.taskinstance import TaskInstance
+    from airflow.models.variable import Variable
+    from airflow.models.xcom import XCom
+    from airflow.utils.helpers import is_container
 
 
 class _Variable(Variable):
@@ -44,21 +46,9 @@ class _TaskInstance(TaskInstance):
         )
 
 
-class _Session(MagicMock):
-    def query(self, *args, **kwargs):
-        print("querying")
-
-    def __enter__():
-        pass
-
-    def __exit__():
-        pass
-
-
 context_patches = (
     patch("airflow.models.Variable", _Variable),
     patch("airflow.models.variable.Variable", _Variable),
     patch("airflow.models.TaskInstance", _TaskInstance),
     patch("airflow.models.taskinstance.TaskInstance", _TaskInstance),
-    patch("airflow.utils.session.create_session", return_value=_Session(spec=settings.SASession))
 )

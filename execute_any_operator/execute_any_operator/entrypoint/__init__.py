@@ -10,6 +10,8 @@ from execute_any_operator.entrypoint.python_operator import python_operator
 from execute_any_operator.entrypoint.remote_bash_operator import \
     remote_bash_operator
 from execute_any_operator.entrypoint.s3_key_sensor import s3_key_sensor
+from execute_any_operator.entrypoint.simple_http_operator import \
+    simple_http_operator
 from execute_any_operator.utils.helpers import _multi_tuple_to_dict
 
 
@@ -35,6 +37,7 @@ cli.add_command(kubernetes_pod_operator)
 cli.add_command(python_operator)
 cli.add_command(remote_bash_operator)
 cli.add_command(s3_key_sensor)
+cli.add_command(simple_http_operator)
 
 if __name__ == "__main__":
     cli()

@@ -1,5 +1,6 @@
 import functools
 import inspect
+import logging
 from contextlib import ExitStack
 from enum import Enum
 from typing import Any, Type, TypeVar, Union
@@ -15,7 +16,7 @@ with ExitStack() as stack:
     from airflow import macros
     from airflow.models.baseoperator import BaseOperator
     from airflow.models.dag import DAG
-    from airflow.models.taskinstance import TaskInstance
+    from airflow.models.taskinstance import XCOM_RETURN_KEY, TaskInstance
     from airflow.operators.bash import BashOperator
     from airflow.operators.python import PythonOperator
     from airflow.providers.amazon.aws.sensors.s3_key import S3KeySensor
@@ -23,10 +24,13 @@ with ExitStack() as stack:
     from airflow.providers.apache.hive.operators.hive import HiveOperator
     from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
         KubernetesPodOperator
+    from airflow.providers.http.operators.http import SimpleHttpOperator
     from arrow_hdfs_sensor.sensor import ArrowHdfsSensor
     from remote_bash_operator.operator import RemoteBashOperator
 
 TBaseOperator = TypeVar("TBaseOperator", bound=BaseOperator)
+
+log = logging.getLogger(__name__)
 
 
 class AllowedOperators(Enum):
@@ -38,6 +42,7 @@ class AllowedOperators(Enum):
     S3KeySensor = S3KeySensor
     ArrowHdfsSensor = ArrowHdfsSensor
     RemoteBashOperator = RemoteBashOperator
+    SimpleHttpOperator = SimpleHttpOperator
 
     def __call__(self, *args, **kwargs):
         return self.value(*args, **kwargs)
@@ -90,6 +95,7 @@ class ExecuteAnyOperator(BaseOperator):
         )
         self.start_date = kwargs["start_date"]
         self.task = self.operator(**kwargs)
+        self.task._log = log
         self.context = self._generate_context()
 
     def _generate_context(self):
@@ -135,4 +141,8 @@ class ExecuteAnyOperator(BaseOperator):
         return self.task.post_execute(context, result)
 
     def execute(self):
-        return self.task.execute(context=self.context)
+        self.log.info(f"ExecuteAnyOperator is executing {self.task}")
+        result = self.task.execute(context=self.context)
+        if self.task.do_xcom_push and result is not None:
+            self.task.xcom_push(self.context, key=XCOM_RETURN_KEY, value=result)
+        return result
