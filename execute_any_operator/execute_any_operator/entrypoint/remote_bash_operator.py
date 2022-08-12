@@ -1,4 +1,3 @@
-
 import click
 from execute_any_operator.operators.execute_any import ExecuteAnyOperator
 from execute_any_operator.utils.helpers import _remove_unused_kwargs
@@ -17,7 +16,11 @@ from remote_bash_operator.operator import Config, EnvironmentConfigInstance
     "-o", "--output-encoding", default="utf-8", help="Output encoding of bash command"
 )
 @click.option(
-    "-w", "--working-directory", "cwd", default=None, help="Working directory to execute the command in"
+    "-w",
+    "--working-directory",
+    "cwd",
+    default=None,
+    help="Working directory to execute the command in",
 )
 @click.option("--encode", default=True, help="")
 @click.option("--extra_clusters", default=(), help="")

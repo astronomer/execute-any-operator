@@ -35,7 +35,9 @@ def make_kwargs(func):
         try:
             mod_name, op_name = operator.split(":", 1)
         except ValueError:
-            raise ValueError(f"Operator string {operator} improperly formatted, must be in module notation (my.module:OperatorClass)")
+            raise ValueError(
+                f"Operator string {operator} improperly formatted, must be in module notation (my.module:OperatorClass)"
+            )
 
         kwargs["mod_name"] = mod_name
         kwargs["op_name"] = op_name
@@ -44,6 +46,7 @@ def make_kwargs(func):
         if "start_date" not in kwargs:
             kwargs["start_date"] = pendulum.now()
         return func(*args, **kwargs)
+
     return wrapper
 
 
@@ -77,7 +80,9 @@ class ExecuteAnyOperator(BaseOperator):
         ts = self.start_date.isoformat()
         ts_nodash = self.start_date.strftime("%Y%m%dT%H%M%S")
         ts_nodash_with_tz = ts.replace("-", "").replace(":", "")
-        task_instance = TaskInstance(task=self.task, execution_date=self.start_date, run_id=f"cli__{ts_nodash}")
+        task_instance = TaskInstance(
+            task=self.task, execution_date=self.start_date, run_id=f"cli__{ts_nodash}"
+        )
 
         return {
             "conf": None,

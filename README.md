@@ -17,4 +17,8 @@ docker build -t execute-any-operator .
 
 This will create a Docker image tagged with `execute-any-operator` which includes the CLI tool and other required code.
 
-## Adding Supported Operators
+## Adding New Operators
+
+To add new operators to the CLI tool, all that's required is to create a new subcommand that initializes the `ExecuteAnyOperator` and calls `.execute()`. Another important piece to adding a new operator is to include all of the initialization parameters that you might need. Please refer to the example below:
+
+### Implementing the

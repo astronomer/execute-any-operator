@@ -1,4 +1,3 @@
-
 import click
 from execute_any_operator.operators.execute_any import ExecuteAnyOperator
 from execute_any_operator.utils.helpers import _remove_unused_kwargs
