@@ -66,11 +66,10 @@ and optionally any number of keyword arguments available in the context dictiona
 )
 @click.option("--log-response", default=False)
 # @click.option("--auth-type", default=None, help="The auth type for the service.")
-def simple_http_operator(endpoint, **kwargs):
+def simple_http_operator(**kwargs):
     click.echo("Executing SimpleHttpOperator")
     task = ExecuteAnyOperator(
         operator="airflow.providers.http.operators.http:SimpleHttpOperator",
-        endpoint=endpoint,
         **_remove_unused_kwargs(kwargs)
     )
     task.execute()
