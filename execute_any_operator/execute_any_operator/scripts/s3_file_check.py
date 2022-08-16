@@ -1,8 +1,9 @@
 from airflow.exceptions import AirflowSensorTimeout
-from airflow.operators.bash import BashOperator
-from util.execute_any_operator import ExecuteAnyOperator
+from execute_any_operator.operators.execute_any import ExecuteAnyOperator
 
-hello = ExecuteAnyOperator(operator=BashOperator, bash_command="echo 'Hello, World!'")
+hello = ExecuteAnyOperator(
+    operator="airflow.operators.bash:BashOperator", bash_command="echo 'Hello, World!'"
+)
 hello.execute()
 
 # kpo = ExecuteAnyOperator(
@@ -17,7 +18,13 @@ hello.execute()
 # )
 # kpo.execute()
 
-s3_check = ExecuteAnyOperator(operator="S3KeySensor", bucket_name="dylanintorf-dev", bucket_key="dylan-dev/DagRun.pickles", poke_interval=1, timeout=5)
+s3_check = ExecuteAnyOperator(
+    operator="airflow.providers.amazon.aws.sensors.s3_key:S3KeySensor",
+    bucket_name="dylanintorf-dev",
+    bucket_key="dylan-dev/DagRun.pickles",
+    poke_interval=1,
+    timeout=5,
+)
 try:
     s3_check.execute()
     print("File exists!")

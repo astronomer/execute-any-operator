@@ -7,17 +7,6 @@ from execute_any_operator.utils.helpers import (
     _str_to_callable,
 )
 
-# endpoint: Optional[str] = None,
-# method: str = 'POST',
-# data: Any = None,
-# headers: Optional[Dict[str, str]] = None,
-# response_check: Optional[Callable[..., bool]] = None,
-# response_filter: Optional[Callable[..., Any]] = None,
-# extra_options: Optional[Dict[str, Any]] = None,
-# http_conn_id: str = 'http_default',
-# log_response: bool = False,
-# auth_type: Type[AuthBase] = HTTPBasicAuth,
-
 
 @click.command()
 @click.option("--endpoint", default=None, help="The relative part of the full url.")

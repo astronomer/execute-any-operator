@@ -7,8 +7,8 @@
   - utilize Click CLI
 
 - [ ] add example of running in kubernetes
-- [ ] patch any airflow calls to db, airflow functions, etc
+- [x] patch any airflow calls to db, airflow functions, etc
 - [x] add pre-execute wrapper
-- [ ] add post-execute wrapper
+- [x] add post-execute wrapper
 - [x] patch airflow.models.Variable globally
-- [ ] provide steps for adding new operators
+- [x] provide steps for adding new operators

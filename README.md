@@ -19,6 +19,12 @@ docker build -t execute-any-operator .
 
 This will create a Docker image tagged with `execute-any-operator` which includes the CLI tool and other required code.
 
+To change the image repository and tag add the following build arguments:
+
+```bash
+docker build -t execute-any-operator --build-arg BASE_IMAGE=<my-image-repo> --build-arg IMAGE_TAG=<my-image-tag>
+```
+
 ## Executing Operators
 
 To execute operators, we can run the docker image with the subcommand for the operator we want to execute. For example, this is how you would execute the `BashOperator`:
@@ -85,7 +91,7 @@ from execute_any_operator.utils.helpers import _multi_tuple_to_dict, _remove_unu
 
 @click.command()
 @click.option("--arg-two", default=False, help="Optional second argument")
-@click.option("--arg-three", default=None, multiple=True, callable=_multi_tuple_to_dict, help="Optional third argument")
+@click.option("--arg-three", default=None, multiple=True, type=click.Tuple([str, str]), callable=_multi_tuple_to_dict, help="Optional third argument")
 @click.argument("arg-one", required=True)
 def example_operator(arg_one, **kwargs):
     @click.echo("Executing ExampleOperator")
