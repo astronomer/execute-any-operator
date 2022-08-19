@@ -14,8 +14,18 @@ with patch("sqlalchemy.orm.scoped_session", mockSession):
 class _Variable(Variable):
     @classmethod
     def get(
-        cls, key: str, default_var: Any = ..., deserialize_json: bool = False
+        cls,
+        key: str,
+        default_var: Any = Variable.__NO_DEFAULT_SENTINEL,
+        deserialize_json: bool = False,
     ) -> Any:
+        var_value = Variable.get(
+            key=key,
+            default_var=default_var,
+            deserialize_json=deserialize_json,
+        )
+        if var_value is not None:
+            return var_value
         return os.getenv(key.upper())
 
 
@@ -31,7 +41,13 @@ class _TaskInstance(TaskInstance):
             dag_id=self.dag_id,
         )
 
-    def xcom_pull(self, task_ids: Optional[Union[str, Iterable[str]]] = None, dag_id: Optional[str] = None, key: str = ..., **kwargs) -> Any:
+    def xcom_pull(
+        self,
+        task_ids: Optional[Union[str, Iterable[str]]] = None,
+        dag_id: Optional[str] = None,
+        key: str = ...,
+        **kwargs
+    ) -> Any:
         if is_container(task_ids):
             return XCom.get_many(
                 key=key,

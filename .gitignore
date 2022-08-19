@@ -228,3 +228,4 @@ cython_debug/
 
 remote_bash_operator
 arrow_hdfs_sensor
+secrets
