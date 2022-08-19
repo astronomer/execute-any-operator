@@ -164,3 +164,9 @@ from execute_any_operator.utils.dict_xcom_backend import XComData
 ```
 
 The pattern for data being stored in XCom is `XComData[dag_id][task_id][key]`. An example of printing XCom data can be found in the implementation of [SimpleHttpOperator](execute_any_operator/execute_any_operator/entrypoint/simple_http_operator.py).
+
+## Connections and Variables with LocalSecretsBackend
+
+There is a custom secrets backend called [LocalSecretsBackend](execute_any_operator/execute_any_operator/utils/secrets_backend.py) that pulls connections and variables from local files. The files are located at `/execute_any_operator/secrets/connections.yaml` and `/execute_any_operator/secrets/variables.yaml` in the Docker image. For local development, place a `connections.yaml` and `variables.yaml` file in a `secrets` directory in the root of this project. These two files can be mounted as a volume as well for use in Kubernetes.
+
+Refer to [Local Filesystem Secrets Backend](https://airflow.apache.org/docs/apache-airflow/stable/security/secrets/secrets-backend/local-filesystem-secrets-backend.html) for formatting details for both files.
