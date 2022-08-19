@@ -44,7 +44,7 @@ def make_kwargs(func):
         if "task_id" not in kwargs:
             kwargs["task_id"] = f"execute_{op_name}"
         if "start_date" not in kwargs:
-            kwargs["start_date"] = pendulum.now()
+            kwargs["start_date"] = pendulum.now(tz="UTC")
         return func(*args, **kwargs)
 
     return wrapper
@@ -65,7 +65,7 @@ class ExecuteAnyOperator(BaseOperator):
             "dummy_dag",
             default_args={
                 "owner": "airflow",
-                "start_date": pendulum.today().subtract(days=1),
+                "start_date": pendulum.today(tz="UTC").subtract(days=1),
             },
             schedule_interval=None,
         )
